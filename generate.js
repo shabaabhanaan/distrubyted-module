@@ -19,41 +19,54 @@ const messages = [
 ];
 
 const FILE_TO_MODIFY = 'activity.log';
-const NUM_COMMITS = 500;
+const days = [];
+const today = new Date();
 
-// Function to get a random date between two dates
-function getRandomDate(start, end) {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+for (let i = 0; i < 3; i++) {
+  const d = new Date();
+  d.setDate(today.getDate() - i);
+  days.push(d);
 }
 
-const endDate = new Date(); // Today
-const startDate = new Date();
-startDate.setFullYear(endDate.getFullYear() - 1); // Spread over the last 1 year
+console.log(`Starting to generate commits for the last 3 days...`);
+days.forEach(d => console.log(`  - ${d.toDateString()}`));
 
-console.log(`Starting to generate ${NUM_COMMITS} commits...`);
+let totalCommitsCreated = 0;
 
-for (let i = 0; i < NUM_COMMITS; i++) {
-  // 1. Pick a random backdate
-  const dateStr = getRandomDate(startDate, endDate).toISOString();
+for (const day of days) {
+  // Generate a random number of commits (e.g., 5 to 10) per day
+  const commitsForDay = Math.floor(Math.random() * 6) + 5; 
+  console.log(`\nCreating ${commitsForDay} commits for ${day.toDateString()}...`);
   
-  // 2. Modify a file so Git has something to commit
-  fs.appendFileSync(FILE_TO_MODIFY, `Activity log entry ${i} - ${dateStr}\n`);
-  
-  // 3. Stage the file
-  execSync(`git add ${FILE_TO_MODIFY}`);
-  
-  // 4. Pick a random realistic message
-  const msg = messages[Math.floor(Math.random() * messages.length)];
-  
-  // 5. Commit with the forged timestamps
-  const env = { ...process.env, GIT_COMMITTER_DATE: dateStr, GIT_AUTHOR_DATE: dateStr };
-  
-  try {
-    execSync(`git commit -m "${msg}" --date="${dateStr}"`, { env });
-    console.log(`Created commit ${i + 1}/${NUM_COMMITS} on ${dateStr}`);
-  } catch (e) {
-    console.error("Failed to commit", e.message);
+  for (let i = 0; i < commitsForDay; i++) {
+    // Generate a random time on that day (between 9:00 and 18:00)
+    const commitDate = new Date(day);
+    const hour = Math.floor(Math.random() * 10) + 9;
+    const minute = Math.floor(Math.random() * 60);
+    const second = Math.floor(Math.random() * 60);
+    commitDate.setHours(hour, minute, second, 0);
+    const dateStr = commitDate.toISOString();
+    
+    // Modify file
+    fs.appendFileSync(FILE_TO_MODIFY, `Activity log entry - ${dateStr}\n`);
+    
+    // Stage file
+    execSync(`git add ${FILE_TO_MODIFY}`);
+    
+    // Pick random message
+    const msg = messages[Math.floor(Math.random() * messages.length)];
+    
+    // Commit
+    const env = { ...process.env, GIT_COMMITTER_DATE: dateStr, GIT_AUTHOR_DATE: dateStr };
+    
+    try {
+      execSync(`git commit -m "${msg}" --date="${dateStr}"`, { env });
+      totalCommitsCreated++;
+      console.log(`Created commit ${i + 1}/${commitsForDay} on ${dateStr}`);
+    } catch (e) {
+      console.error("Failed to commit", e.message);
+    }
   }
 }
 
-console.log("\nDone! Now run 'git push' to upload these to GitHub.");
+console.log(`\nDone! Created ${totalCommitsCreated} commits in total. Now run 'git push' to upload these to GitHub.`);
